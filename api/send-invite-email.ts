@@ -11,29 +11,41 @@ interface SendInviteEmailRequest {
 }
 
 export default async function handler(req: any, res: any) {
-  // Only allow POST
+  console.log('[send-invite-email] Incoming request', {
+    method: req.method,
+    url: req.url,
+  });
+
   if (req.method !== 'POST') {
+    console.warn('[send-invite-email] Method not allowed', req.method);
     return res.status(405).json({ ok: false, message: 'Method not allowed' });
   }
 
-  // Validate request body
-  const { toEmail, inviteLink, inviterName, groupName, type }: SendInviteEmailRequest = req.body;
+  const body: SendInviteEmailRequest = req.body as SendInviteEmailRequest;
+  const { toEmail, inviteLink, inviterName, groupName, type } = body || ({} as SendInviteEmailRequest);
+
+  console.log('[send-invite-email] Parsed body', {
+    hasToEmail: !!toEmail,
+    hasInviteLink: !!inviteLink,
+    inviterName,
+    groupName,
+    type,
+  });
 
   if (!toEmail || !inviteLink) {
+    console.warn('[send-invite-email] Missing required fields', { toEmail, inviteLink });
     return res.status(400).json({ ok: false, message: 'Missing required fields: toEmail, inviteLink' });
   }
 
   if (!process.env.RESEND_API_KEY) {
-    console.error('RESEND_API_KEY is not set');
+    console.error('[send-invite-email] RESEND_API_KEY is not set');
     return res.status(500).json({ ok: false, message: 'Email service not configured' });
   }
 
-  // Build email subject
   const subject = groupName
     ? `You're invited to join ${groupName} on Splitzy`
     : "You're invited to Splitzy";
 
-  // Build email HTML body
   const htmlBody = `
     <!DOCTYPE html>
     <html>
@@ -67,7 +79,6 @@ export default async function handler(req: any, res: any) {
     </html>
   `;
 
-  // Build plain text fallback
   const textBody = `
 You're Invited!
 
@@ -90,14 +101,17 @@ If you didn't expect this invite, you can safely ignore this email.
       text: textBody,
     });
 
-    console.log('Email sent successfully:', result);
+    console.log('[send-invite-email] Email sent successfully', result);
 
     return res.status(200).json({ ok: true });
   } catch (error: any) {
-    console.error('Error sending email:', error);
+    console.error('[send-invite-email] Error sending email', {
+      message: error?.message,
+      stack: error?.stack,
+    });
     return res.status(500).json({
       ok: false,
-      message: error.message || 'Failed to send email',
+      message: error?.message || 'Failed to send email',
     });
   }
 }

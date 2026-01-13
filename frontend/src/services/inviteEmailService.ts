@@ -16,26 +16,13 @@ export interface SendInviteEmailResponse {
 }
 
 /**
- * Get the API base URL for serverless endpoints
- * Defaults to same origin (for Vercel deployments)
- */
-function getApiBaseUrl(): string {
-  // In production, API routes are typically at the same origin
-  // For local dev with Vercel CLI, use localhost:3000
-  if (import.meta.env.DEV) {
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-  }
-  return import.meta.env.VITE_API_BASE_URL || window.location.origin;
-}
-
-/**
  * Send an invite email via the serverless endpoint
  */
 export async function sendInviteEmail(
   payload: SendInviteEmailPayload
 ): Promise<SendInviteEmailResponse> {
-  const apiBaseUrl = getApiBaseUrl();
-  const url = `${apiBaseUrl}/api/send-invite-email`;
+  // Use relative URL so this works both locally (with Vercel dev) and in production
+  const url = '/api/send-invite-email';
 
   try {
     const response = await fetch(url, {
